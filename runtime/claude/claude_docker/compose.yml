@@ -1,0 +1,26 @@
+services:
+  claude:
+    build:
+      context: .
+      args:
+        CLAUDE_NPM_PKG: "${CLAUDE_NPM_PKG:-@anthropic-ai/claude-code}"
+        CLAUDE_NPM_VERSION: "${CLAUDE_NPM_VERSION:-latest}"
+    image: ai-avatar-claude:local
+    user: "${HOST_UID}:${HOST_GID}"
+    working_dir: /workspace
+    environment:
+      - HOME=/home/claude
+      - HTTP_PROXY
+      - HTTPS_PROXY
+      - NO_PROXY
+      - http_proxy
+      - https_proxy
+      - no_proxy
+    volumes:
+      - ${AVATAR_WORKSPACE_DIR}:/workspace
+      - claude_home:/home/claude
+    stdin_open: true
+    tty: true
+
+volumes:
+  claude_home:

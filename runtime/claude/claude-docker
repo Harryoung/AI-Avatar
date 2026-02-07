@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+compose_file="${root_dir}/claude_docker/compose.yml"
+
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
+export AVATAR_WORKSPACE_DIR="${AVATAR_WORKSPACE_DIR:-$(cd "${root_dir}/../.." && pwd)/workspace}"
+
+dc() { docker compose -f "${compose_file}" "$@"; }
+
+dc_run() {
+  local -a args
+  args=(run --rm)
+  if [[ ! -t 0 ]]; then
+    args+=(-T)
+  fi
+  dc "${args[@]}" "$@"
+}
+
+fail() {
+  echo "错误: $*" >&2
+  exit 2
+}
+
+preflight() {
+  command -v docker >/dev/null 2>&1 || fail "未安装 Docker。请先安装 Docker Desktop。"
+  docker compose version >/dev/null 2>&1 || fail "未检测到 docker compose。请升级 Docker Desktop。"
+  [[ -d "${AVATAR_WORKSPACE_DIR}" ]] || fail "工作目录不存在: ${AVATAR_WORKSPACE_DIR}。请先 mkdir -p ${AVATAR_WORKSPACE_DIR}"
+}
+
+usage() {
+  cat <<'HELP'
+用法:
+  ./runtime/claude/claude-docker help
+  ./runtime/claude/claude-docker build
+  ./runtime/claude/claude-docker run
+  ./runtime/claude/claude-docker shell
+  ./runtime/claude/claude-docker set-token
+  ./runtime/claude/claude-docker set-base-url
+  ./runtime/claude/claude-docker set-github-token
+  ./runtime/claude/claude-docker unset-token
+  ./runtime/claude/claude-docker unset-base-url
+  ./runtime/claude/claude-docker unset-github-token
+
+示例:
+  ./runtime/claude/claude-docker build
+  AVATAR_WORKSPACE_DIR=$PWD/workspace ./runtime/claude/claude-docker run
+HELP
+}
+
+preflight
+
+set_cfg() {
+  local name="$1"
+  local value="${2:-}"
+  if [[ -z "${value}" ]]; then
+    read -r -s -p "${name}: " value
+    echo
+  fi
+  [[ -n "${value}" ]] || fail "配置值不能为空。"
+  dc_run -e _VAL="${value}" claude bash -lc \
+    "umask 077; mkdir -p \"\$HOME/.config/claude\"; printf \"%s\" \"\$_VAL\" > \"\$HOME/.config/claude/${name}\""
+  echo "已写入 claude_home:/home/claude/.config/claude/${name}"
+}
+
+unset_cfg() {
+  local name="$1"
+  dc_run claude bash -lc "rm -f \"\$HOME/.config/claude/${name}\""
+  echo "已删除 ${name}"
+}
+
+set_github_token() {
+  local token="${1:-}"
+  if [[ -z "${token}" ]]; then
+    read -r -s -p "GITHUB_TOKEN: " token
+    echo
+  fi
+  [[ -n "${token}" ]] || fail "GITHUB_TOKEN 不能为空。"
+  dc_run -e _TOKEN="${token}" claude bash -lc '
+    set -euo pipefail
+    umask 077
+    mkdir -p "$HOME/.config/git"
+    git config --global credential.helper "store --file $HOME/.config/git/credentials"
+    printf "https://x-access-token:%s@github.com\n" "$_TOKEN" > "$HOME/.config/git/credentials"
+  '
+  echo "已写入 GitHub token 到 volume。"
+}
+
+case "${1:-run}" in
+  help|-h|--help)
+    usage
+    ;;
+  build)
+    shift
+    dc build "$@"
+    ;;
+  run)
+    shift
+    dc_run claude claude --dangerously-skip-permissions "$@"
+    ;;
+  shell)
+    shift
+    dc_run claude bash "$@"
+    ;;
+  set-token)
+    shift
+    set_cfg anthropic_auth_token "${1:-}"
+    ;;
+  set-base-url)
+    shift
+    set_cfg anthropic_base_url "${1:-}"
+    ;;
+  unset-token)
+    unset_cfg anthropic_auth_token
+    ;;
+  unset-base-url)
+    unset_cfg anthropic_base_url
+    ;;
+  set-github-token)
+    shift
+    set_github_token "${1:-}"
+    ;;
+  unset-github-token)
+    dc_run claude bash -lc 'rm -f "$HOME/.config/git/credentials"'
+    echo "已删除 GitHub token。"
+    ;;
+  *)
+    dc_run claude claude --dangerously-skip-permissions "$@"
+    ;;
+esac

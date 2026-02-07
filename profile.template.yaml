@@ -1,0 +1,19 @@
+profile:
+  name: "Your Alias"
+  language: "zh-CN"
+  timezone: "Asia/Shanghai"
+
+work:
+  role: "Your Role"
+  goals:
+    - "Goal A"
+    - "Goal B"
+
+preferences:
+  communication_style: "direct"
+  output_length: "short"
+
+boundaries:
+  privacy:
+    - "Never commit personal address"
+    - "Never commit personal phone"

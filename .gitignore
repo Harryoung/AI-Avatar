@@ -1,0 +1,23 @@
+# Local private profile and secrets
+profile.local.yaml
+secrets/.env.local
+
+# Runtime volumes, cache and logs
+*.log
+.runtime/
+
+# Build artifacts
+dist/
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Keep secrets directory but ignore files
+secrets/*
+!secrets/.gitkeep

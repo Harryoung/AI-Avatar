@@ -1,0 +1,26 @@
+services:
+  codex:
+    build:
+      context: .
+      args:
+        CODEX_NPM_PKG: "${CODEX_NPM_PKG:-@openai/codex}"
+        CODEX_NPM_VERSION: "${CODEX_NPM_VERSION:-latest}"
+    image: ai-avatar-codex:local
+    user: "${HOST_UID}:${HOST_GID}"
+    working_dir: /workspace
+    environment:
+      - HOME=/home/codex
+      - HTTP_PROXY
+      - HTTPS_PROXY
+      - NO_PROXY
+      - http_proxy
+      - https_proxy
+      - no_proxy
+    volumes:
+      - ${AVATAR_WORKSPACE_DIR}:/workspace
+      - codex_home:/home/codex
+    stdin_open: true
+    tty: true
+
+volumes:
+  codex_home:

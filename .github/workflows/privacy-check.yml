@@ -1,0 +1,20 @@
+name: privacy-check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan sensitive patterns
+        run: |
+          set -euo pipefail
+          blocked='(身份证|住址|家庭住址|病历|医疗记录|简历|手机号|电话|@.*\.(com|cn)|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36})'
+          if rg -n --hidden -g '!.git' -g '!secrets/.gitkeep' -E "$blocked" .; then
+            echo "发现潜在隐私或密钥信息，请清理后重试。"
+            exit 1
+          fi

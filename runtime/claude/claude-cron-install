@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+hour="${1:-9}"
+if ! [[ "${hour}" =~ ^[0-9]+$ ]] || [ "${hour}" -lt 0 ] || [ "${hour}" -gt 23 ]; then
+  echo "错误: 小时参数必须为 0-23 的整数，当前值: ${hour}" >&2
+  exit 1
+fi
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+job="${root_dir}/claude-cron-run"
+log="${root_dir}/claude-cron.log"
+marker="# ai-avatar-claude-cron"
+path_line="PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+tmp="$(mktemp)"
+trap 'rm -f "${tmp}" "${tmp}.new"' EXIT
+
+crontab -l 2>/dev/null >"${tmp}" || true
+awk -v marker="${marker}" -v path_line="${path_line}" -v job="${job}" '
+  $0 == marker { next }
+  $0 == path_line { next }
+  index($0, "\"" job "\"") > 0 { next }
+  { print }
+' "${tmp}" >"${tmp}.new"
+mv "${tmp}.new" "${tmp}"
+
+{
+  echo "${marker}"
+  echo "${path_line}"
+  echo "0 ${hour} * * * \"${job}\" >> \"${log}\" 2>&1"
+} >>"${tmp}"
+
+crontab "${tmp}"
+echo "已安装定时任务: 每天 ${hour}:00 运行 claude-cron-run"
+echo "卸载命令: crontab -l | grep -v '${marker}' | grep -v '${job}' | crontab -"

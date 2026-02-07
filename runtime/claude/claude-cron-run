@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${root_dir}"
+
+export GIT_TERMINAL_PROMPT=0
+
+dt="$(date -Iseconds)"
+prompt="当前时间 ${dt}，请按你的计划推进并在需要时同步阻塞点。"
+
+./claude-docker run -p "${prompt}"
