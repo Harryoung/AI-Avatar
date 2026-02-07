@@ -6,6 +6,9 @@ secrets/.env.local
 *.log
 .runtime/
 
+# Workspace (contains user data, mounted into containers)
+workspace/
+
 # Build artifacts
 dist/
 node_modules/
