@@ -1,11 +1,51 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-hour="${1:-9}"
-if ! [[ "${hour}" =~ ^[0-9]+$ ]] || [ "${hour}" -lt 0 ] || [ "${hour}" -gt 23 ]; then
-  echo "错误: 小时参数必须为 0-23 的整数，当前值: ${hour}" >&2
+# Usage:
+#   ./claude-cron-install 9              # backward compat: daily at 9:00
+#   ./claude-cron-install "0 9 * * *"    # explicit 5-field cron schedule
+#   ./claude-cron-install "0 9,14 * * *" # daily at 9:00 and 14:00
+#   ./claude-cron-install "0 9 * * 1"    # weekly on Monday at 9:00
+#   ./claude-cron-install "0 9 1 * *"    # monthly on 1st at 9:00
+
+schedule="$1"
+
+# Backward compat: single number → daily at that hour
+if [[ "${schedule}" =~ ^[0-9]+$ ]]; then
+  hour="${schedule}"
+  if [ "${hour}" -lt 0 ] || [ "${hour}" -gt 23 ]; then
+    echo "错误: 小时参数必须为 0-23 的整数，当前值: ${hour}" >&2
+    exit 1
+  fi
+  schedule="0 ${hour} * * *"
+fi
+
+# Validate: must be exactly 5 fields
+read -ra fields <<< "${schedule}"
+if [ "${#fields[@]}" -ne 5 ]; then
+  echo "错误: cron 调度格式必须为 5 个字段（分 时 日 月 周），当前值: ${schedule}" >&2
   exit 1
 fi
+
+describe_schedule() {
+  local min="$1" hour="$2" dom="$3" mon="$4" dow="$5"
+  local dow_names=("周日" "周一" "周二" "周三" "周四" "周五" "周六")
+  local time_desc="${hour}:00"
+  if [[ "${hour}" == *","* ]]; then
+    time_desc="每天 ${hour} 点"
+  fi
+  if [[ "${dow}" != "*" ]]; then
+    echo "${dow_names[${dow}]} ${time_desc}"
+  elif [[ "${dom}" != "*" ]]; then
+    echo "每月 ${dom} 日 ${time_desc}"
+  elif [[ "${hour}" == *","* ]]; then
+    echo "${time_desc}"
+  else
+    echo "每天 ${time_desc}"
+  fi
+}
+
+desc="$(describe_schedule "${fields[@]}")"
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 job="${root_dir}/claude-cron-run"
@@ -28,9 +68,9 @@ mv "${tmp}.new" "${tmp}"
 {
   echo "${marker}"
   echo "${path_line}"
-  echo "0 ${hour} * * * \"${job}\" >> \"${log}\" 2>&1"
+  echo "${schedule} \"${job}\" >> \"${log}\" 2>&1"
 } >>"${tmp}"
 
 crontab "${tmp}"
-echo "已安装定时任务: 每天 ${hour}:00 运行 claude-cron-run"
+echo "已安装定时任务: ${desc} 运行 claude-cron-run"
 echo "卸载命令: crontab -l | grep -v '${marker}' | grep -v '${job}' | crontab -"
