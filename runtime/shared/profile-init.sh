@@ -179,26 +179,43 @@ YAML
 
   # 3b: 身份概览 → AGENTS.md（全部可跳过）
   echo ""
-  echo "--- 身份概览（写入 AGENTS.md，全部可跳过，直接回车跳过）---"
+  echo "--- 身份概览（写入 AGENTS.md）---"
+  echo "以下字段全部可跳过（直接回车），后续可在 workspace/AGENTS.md 或 CLAUDE.md 中手动补充。"
+  echo "填写越完整，AI 分身越了解你。"
+  echo ""
   ask "姓名: " id_name
   ask "性别: " id_gender
+  ask "出生(如 1990-01-01): " id_birth
   ask "家乡: " id_hometown
   ask "现居: " id_location
+  echo ""
+  ask "学历(如 本科/硕士/博士): " id_education
+  ask "专业: " id_major
+  echo ""
   ask "职业: " id_career
   ask "公司: " id_company
+  ask "负责(工作内容简述): " id_responsibility
+  echo ""
+  ask "家庭(如 已婚，一个孩子): " id_family
   ask "人格(如 INTJ): " id_personality
 
   agents_file="${workspace_dir}/AGENTS.md"
   if [[ -f "${agents_file}" ]]; then
     fill_agents_field "${agents_file}" "姓名" "${id_name}"
     fill_agents_field "${agents_file}" "性别" "${id_gender}"
+    fill_agents_field "${agents_file}" "出生" "${id_birth}"
     fill_agents_field "${agents_file}" "家乡" "${id_hometown}"
     fill_agents_field "${agents_file}" "现居" "${id_location}"
+    fill_agents_field "${agents_file}" "学历" "${id_education}"
+    fill_agents_field "${agents_file}" "专业" "${id_major}"
     fill_agents_field "${agents_file}" "职业" "${id_career}"
     fill_agents_field "${agents_file}" "公司" "${id_company}"
+    fill_agents_field "${agents_file}" "负责" "${id_responsibility}"
+    fill_agents_field "${agents_file}" "家庭" "${id_family}"
     fill_agents_field "${agents_file}" "人格" "${id_personality}"
     # Remove the placeholder hint line if any field was filled
-    if [[ -n "${id_name}${id_gender}${id_hometown}${id_location}${id_career}${id_company}${id_personality}" ]]; then
+    all_fields="${id_name}${id_gender}${id_birth}${id_hometown}${id_location}${id_education}${id_major}${id_career}${id_company}${id_responsibility}${id_family}${id_personality}"
+    if [[ -n "${all_fields}" ]]; then
       sed -i.bak '/^> 请用户补充个人实际信息后删除本行。/d' "${agents_file}"
       rm -f "${agents_file}.bak"
     fi
@@ -293,14 +310,50 @@ fi
 # ============================================================
 
 banner "Step 7/9: 定时任务（可选）"
-echo "安装定时任务后，分身会每天自动启动一次。"
+echo "安装定时任务后，分身会按设定频率自动启动。"
 echo ""
 ask "是否安装定时任务？(y/N): " do_cron
 do_cron="${do_cron:-N}"
 if [[ "${do_cron}" =~ ^[Yy] ]]; then
-  ask "每天几点运行？(0-23，默认 9): " cron_hour
-  cron_hour="${cron_hour:-9}"
-  "${root_dir}/runtime/${engine}/${engine}-cron-install" "${cron_hour}"
+  echo ""
+  echo "  1) 每天一次（默认）"
+  echo "  2) 每天多次"
+  echo "  3) 每周"
+  echo "  4) 每月"
+  echo ""
+  ask "执行频率 (1/2/3/4，默认 1): " cron_freq
+  cron_freq="${cron_freq:-1}"
+
+  cron_schedule=""
+  case "${cron_freq}" in
+    2)
+      ask "运行时间（输入小时，逗号分隔，如 9,14,20）: " cron_hours
+      cron_hours="${cron_hours:-9}"
+      cron_schedule="0 ${cron_hours} * * *"
+      ;;
+    3)
+      echo "  0=周日 1=周一 2=周二 3=周三 4=周四 5=周五 6=周六"
+      ask "星期几运行？(0-6，默认 1): " cron_dow
+      cron_dow="${cron_dow:-1}"
+      ask "几点运行？(0-23，默认 9): " cron_hour
+      cron_hour="${cron_hour:-9}"
+      cron_schedule="0 ${cron_hour} * * ${cron_dow}"
+      ;;
+    4)
+      ask "每月几号运行？(1-28，默认 1): " cron_dom
+      cron_dom="${cron_dom:-1}"
+      ask "几点运行？(0-23，默认 9): " cron_hour
+      cron_hour="${cron_hour:-9}"
+      cron_schedule="0 ${cron_hour} ${cron_dom} * *"
+      ;;
+    *)
+      ask "每天几点运行？(0-23，默认 9): " cron_hour
+      cron_hour="${cron_hour:-9}"
+      cron_schedule="0 ${cron_hour} * * *"
+      ;;
+  esac
+
+  "${root_dir}/runtime/${engine}/${engine}-cron-install" "${cron_schedule}"
 fi
 
 # ============================================================

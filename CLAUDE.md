@@ -49,8 +49,11 @@ memory/templates/      # Knowledge base templates (daily review, weekly plan, de
 ./runtime/codex/codex-docker login-device        # Device auth flow
 ./runtime/codex/codex-docker status
 
-# Cron (arg = hour, default 9)
-./runtime/claude/claude-cron-install 9
+# Cron (arg = hour or 5-field cron schedule)
+./runtime/claude/claude-cron-install 9                # daily at 9:00
+./runtime/claude/claude-cron-install "0 9,14 * * *"   # daily at 9:00 and 14:00
+./runtime/claude/claude-cron-install "0 9 * * 1"      # weekly Monday 9:00
+./runtime/claude/claude-cron-install "0 9 1 * *"      # monthly 1st 9:00
 ./runtime/codex/codex-cron-install 14
 
 # Auto-update (args = frequency hour, default weekly 3)
