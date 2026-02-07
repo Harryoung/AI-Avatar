@@ -78,6 +78,7 @@ set_github_token() {
     echo
   fi
   [[ -n "${token}" ]] || fail "GITHUB_TOKEN 不能为空。"
+  # shellcheck disable=SC2016
   dc_run -e _TOKEN="${token}" claude bash -lc '
     set -euo pipefail
     umask 077
@@ -123,6 +124,7 @@ case "${1:-run}" in
     set_github_token "${1:-}"
     ;;
   unset-github-token)
+    # shellcheck disable=SC2016
     dc_run claude bash -lc 'rm -f "$HOME/.config/git/credentials"'
     echo "已删除 GitHub token。"
     ;;
