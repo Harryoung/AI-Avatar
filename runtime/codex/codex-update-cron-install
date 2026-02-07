@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+freq="${1:-weekly}"
+hour="${2:-3}"
+
+case "${freq}" in
+  daily|weekly|monthly) ;;
+  *) echo "错误: 频率参数必须为 daily/weekly/monthly，当前值: ${freq}" >&2; exit 1 ;;
+esac
+
+if ! [[ "${hour}" =~ ^[0-9]+$ ]] || [ "${hour}" -lt 0 ] || [ "${hour}" -gt 23 ]; then
+  echo "错误: 小时参数必须为 0-23 的整数，当前值: ${hour}" >&2
+  exit 1
+fi
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+job="${root_dir}/codex-update"
+log="${root_dir}/codex-update.log"
+marker="# ai-avatar-codex-update-cron"
+path_line="PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+case "${freq}" in
+  daily)   cron_expr="0 ${hour} * * *" ;;
+  weekly)  cron_expr="0 ${hour} * * 0" ;;
+  monthly) cron_expr="0 ${hour} 1 * *" ;;
+esac
+
+tmp="$(mktemp)"
+trap 'rm -f "${tmp}" "${tmp}.new"' EXIT
+
+crontab -l 2>/dev/null >"${tmp}" || true
+awk -v marker="${marker}" -v path_line="${path_line}" -v job="${job}" '
+  $0 == marker { next }
+  $0 == path_line { next }
+  index($0, "\"" job "\"") > 0 { next }
+  { print }
+' "${tmp}" >"${tmp}.new"
+mv "${tmp}.new" "${tmp}"
+
+{
+  echo "${marker}"
+  echo "${path_line}"
+  echo "${cron_expr} \"${job}\" >> \"${log}\" 2>&1"
+} >>"${tmp}"
+
+crontab "${tmp}"
+echo "已安装更新定时任务: ${freq}（${cron_expr}）运行 codex-update"
+echo "卸载命令: crontab -l | grep -v '${marker}' | grep -v '${job}' | crontab -"

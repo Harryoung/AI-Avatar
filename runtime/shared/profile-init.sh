@@ -103,7 +103,8 @@ cat <<'WELCOME'
   5. 配置 API 密钥
   6. (可选) 配置 GitHub Token
   7. (可选) 安装定时任务
-  8. 完成！
+  8. (可选) 自动更新
+  9. 完成！
 
 WELCOME
 
@@ -111,14 +112,14 @@ WELCOME
 # Step 1: 依赖检查
 # ============================================================
 
-banner "Step 1/8: 依赖检查"
+banner "Step 1/9: 依赖检查"
 bash "${root_dir}/runtime/shared/bootstrap.sh"
 
 # ============================================================
 # Step 2: workspace 路径
 # ============================================================
 
-banner "Step 2/8: 设置工作目录"
+banner "Step 2/9: 设置工作目录"
 echo "AI 分身运行在 Docker 容器中，只能访问这个目录下的文件。"
 echo "需要分身处理的文件请放到此目录下，分身也不会触及目录外的任何文件。"
 echo ""
@@ -141,10 +142,10 @@ if [[ -f "${out_file}" ]]; then
 fi
 
 if [[ "${profile_existed}" == "true" ]]; then
-  banner "Step 3/8: 个人画像（已有配置，跳过）"
+  banner "Step 3/9: 个人画像（已有配置，跳过）"
   info "检测到 ${out_file} 已存在，跳过画像填写。"
 else
-  banner "Step 3/8: 个人画像"
+  banner "Step 3/9: 个人画像"
 
   # 3a: 基本画像 → profile.local.yaml
   echo "--- 基本信息（写入 profile.local.yaml）---"
@@ -211,7 +212,7 @@ fi
 # Step 4: 选择引擎
 # ============================================================
 
-banner "Step 4/8: 选择 AI 引擎"
+banner "Step 4/9: 选择 AI 引擎"
 echo "  1) Claude  (Anthropic)"
 echo "  2) Codex   (OpenAI)"
 echo ""
@@ -228,7 +229,7 @@ info "已选择引擎: ${engine}"
 # Step 5: 构建 Docker + 配置密钥
 # ============================================================
 
-banner "Step 5/8: 配置密钥"
+banner "Step 5/9: 配置密钥"
 
 docker_script="${root_dir}/runtime/${engine}/${engine}-docker"
 export AVATAR_WORKSPACE_DIR="${workspace_dir}"
@@ -276,7 +277,7 @@ fi
 # Step 6: GitHub Token (可选)
 # ============================================================
 
-banner "Step 6/8: GitHub Token（可选）"
+banner "Step 6/9: GitHub Token（可选）"
 echo "如果你希望分身能访问你的 GitHub 仓库（读写代码、管理 Issue 等），"
 echo "需要配置 GitHub Personal Access Token。"
 echo "不需要可直接跳过。"
@@ -291,7 +292,7 @@ fi
 # Step 7: 定时任务 (可选)
 # ============================================================
 
-banner "Step 7/8: 定时任务（可选）"
+banner "Step 7/9: 定时任务（可选）"
 echo "安装定时任务后，分身会每天自动启动一次。"
 echo ""
 ask "是否安装定时任务？(y/N): " do_cron
@@ -303,10 +304,36 @@ if [[ "${do_cron}" =~ ^[Yy] ]]; then
 fi
 
 # ============================================================
-# Step 8: 完成汇总
+# Step 8: 自动更新 (可选)
 # ============================================================
 
-banner "Step 8/8: 初始化完成！"
+banner "Step 8/9: 自动更新（可选）"
+echo "安装自动更新后，Docker 镜像将定期重建以获取最新版本的 AI 引擎。"
+echo ""
+ask "是否安装自动更新？(y/N): " do_update
+do_update="${do_update:-N}"
+if [[ "${do_update}" =~ ^[Yy] ]]; then
+  echo "  1) 每天"
+  echo "  2) 每周（默认）"
+  echo "  3) 每月"
+  echo ""
+  ask "更新频率 (1/2/3，默认 2): " update_freq_choice
+  update_freq_choice="${update_freq_choice:-2}"
+  case "${update_freq_choice}" in
+    1) update_freq="daily" ;;
+    3) update_freq="monthly" ;;
+    *) update_freq="weekly" ;;
+  esac
+  ask "更新时间（0-23 点，默认 3）: " update_hour
+  update_hour="${update_hour:-3}"
+  "${root_dir}/runtime/${engine}/${engine}-update-cron-install" "${update_freq}" "${update_hour}"
+fi
+
+# ============================================================
+# Step 9: 完成汇总
+# ============================================================
+
+banner "Step 9/9: 初始化完成！"
 
 cat <<SUMMARY
 已生成 / 更新的文件:
@@ -324,6 +351,9 @@ cat <<SUMMARY
 手动启动分身:
   ./runtime/${engine}/${engine}-docker run
 
-重新运行本向导（补配引擎/密钥/定时任务）:
+手动更新引擎:
+  ./runtime/${engine}/${engine}-docker update
+
+重新运行本向导（补配引擎/密钥/定时任务/自动更新）:
   ./runtime/shared/profile-init.sh
 SUMMARY

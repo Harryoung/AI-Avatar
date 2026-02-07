@@ -15,7 +15,7 @@ jobs:
       - name: Run shellcheck
         run: |
           set -euo pipefail
-          files=$(find runtime -type f \( -name '*.sh' -o -name 'claude-docker' -o -name 'codex-docker' -o -name '*-cron-install' -o -name '*-cron-run' \))
+          files=$(find runtime -type f \( -name '*.sh' -o -name 'claude-docker' -o -name 'codex-docker' -o -name '*-cron-install' -o -name '*-cron-run' -o -name '*-update' \))
           if [ -n "$files" ]; then
             shellcheck $files
           fi

@@ -42,6 +42,7 @@ usage() {
   ./runtime/claude/claude-docker set-github-token
   ./runtime/claude/claude-docker unset-token
   ./runtime/claude/claude-docker unset-base-url
+  ./runtime/claude/claude-docker update
   ./runtime/claude/claude-docker unset-github-token
 
 示例:
@@ -122,6 +123,10 @@ case "${1:-run}" in
   set-github-token)
     shift
     set_github_token "${1:-}"
+    ;;
+  update)
+    shift
+    bash "${root_dir}/claude-update" "$@"
     ;;
   unset-github-token)
     # shellcheck disable=SC2016

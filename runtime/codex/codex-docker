@@ -41,6 +41,7 @@ usage() {
   ./runtime/codex/codex-docker status
   ./runtime/codex/codex-docker logout
   ./runtime/codex/codex-docker set-github-token
+  ./runtime/codex/codex-docker update
   ./runtime/codex/codex-docker unset-github-token
 
 示例:
@@ -100,6 +101,10 @@ case "${1:-run}" in
   set-github-token)
     shift
     set_github_token "${1:-}"
+    ;;
+  update)
+    shift
+    bash "${root_dir}/codex-update" "$@"
     ;;
   unset-github-token)
     # shellcheck disable=SC2016

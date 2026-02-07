@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+compose_file="${root_dir}/claude_docker/compose.yml"
+
+lock_dir="/tmp/ai-avatar-claude-update.lock"
+if ! mkdir "${lock_dir}" 2>/dev/null; then
+  echo "已有 Claude Code 更新任务在运行，跳过本次。"
+  exit 0
+fi
+trap 'rmdir "${lock_dir}" 2>/dev/null || true' EXIT
+
+export HOST_UID="${HOST_UID:-$(id -u)}"
+export HOST_GID="${HOST_GID:-$(id -g)}"
+export AVATAR_WORKSPACE_DIR="${AVATAR_WORKSPACE_DIR:-$(cd "${root_dir}/../.." && pwd)/workspace}"
+
+docker compose -f "${compose_file}" build --pull claude
+docker compose -f "${compose_file}" run --rm -T claude claude --version
+
+echo "Claude Code 更新完成：$(date -Iseconds)"
