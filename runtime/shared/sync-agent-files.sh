@@ -12,6 +12,8 @@ if ! cmp -s "${agents}" "${claude}"; then
     cp "${agents}" "${claude}"
   elif [[ "${claude}" -nt "${agents}" ]]; then
     cp "${claude}" "${agents}"
+  else
+    echo "[warn] AGENTS.md and CLAUDE.md differ but have same timestamp; defaulting AGENTS.md → CLAUDE.md" >&2
+    cp "${agents}" "${claude}"
   fi
-  # timestamps equal but content differs: skip to avoid silent misoverwrite
 fi
