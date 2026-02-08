@@ -10,7 +10,8 @@ claude="${workspace}/CLAUDE.md"
 if ! cmp -s "${agents}" "${claude}"; then
   if [[ "${agents}" -nt "${claude}" ]]; then
     cp "${agents}" "${claude}"
-  else
+  elif [[ "${claude}" -nt "${agents}" ]]; then
     cp "${claude}" "${agents}"
   fi
+  # timestamps equal but content differs: skip to avoid silent misoverwrite
 fi
