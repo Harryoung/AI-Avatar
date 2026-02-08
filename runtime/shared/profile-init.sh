@@ -147,6 +147,10 @@ if [[ "${profile_existed}" == "true" ]]; then
 else
   banner "Step 3/9: 个人画像"
 
+  echo "🔒 隐私说明：你填写的所有信息仅保存在本机文件中，不会上传至任何服务器。"
+  echo "   profile.local.yaml 和 AGENTS.md 均已加入 .gitignore，不会被提交到代码仓库。"
+  echo ""
+
   # 3a: 基本画像 → profile.local.yaml
   echo "--- 基本信息（写入 profile.local.yaml）---"
   ask "昵称 (默认: Your Alias): " p_name
