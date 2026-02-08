@@ -132,6 +132,15 @@ touch "${workspace_dir}/SyncSpace/主分身沟通.txt"
 sync_agent_files "${workspace_dir}"
 info "工作目录已就绪: ${workspace_dir}"
 
+# 初始化偏好文件
+prefs_dir="${workspace_dir}/memory"
+prefs_file="${prefs_dir}/preferences.md"
+mkdir -p "${prefs_dir}"
+if [[ ! -f "${prefs_file}" ]]; then
+  cp "${root_dir}/memory/templates/preferences.md" "${prefs_file}"
+  info "已创建 ${prefs_file}"
+fi
+
 # ============================================================
 # Step 3: 个人画像
 # ============================================================
