@@ -12,6 +12,10 @@ fi
 trap 'rmdir "${lock_dir}" 2>/dev/null || true' EXIT
 
 export GIT_TERMINAL_PROMPT=0
+
+export AVATAR_WORKSPACE_DIR="${AVATAR_WORKSPACE_DIR:-$(cd "${root_dir}/../.." && pwd)/workspace}"
+bash "${root_dir}/../shared/sync-agent-files.sh" 2>/dev/null || true
+
 timeout_seconds="${CODEX_CRON_TIMEOUT_SECONDS:-2700}"
 dt="$(date -Iseconds)"
 prompt="当前时间 ${dt}，请按你的计划推进并在需要时同步阻塞点。"
